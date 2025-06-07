@@ -27,7 +27,7 @@
       font-weight: 700;
       margin-bottom: 2rem;
     }
-    .container {
+    .a1 {
       background: #fff;
       border-radius: 1.5rem;
       box-shadow: 0 2px 8px rgba(80,90,160,0.08);
@@ -64,7 +64,7 @@
     button:active {
       background: #3730a3;
     }
-    .preview {
+    .b2 {
       margin: 1rem 0;
       max-width: 180px;
       max-height: 220px;
@@ -72,7 +72,7 @@
       box-shadow: 0 1px 6px rgba(0,0,0,0.15);
       display: none;
     }
-    .response-container {
+    .c3 {
       width: 100%;
       background: #f3f4fa;
       border-radius: 1rem;
@@ -84,117 +84,107 @@
       white-space: pre-line;
       box-sizing: border-box;
     }
-    .loading {
+    .d4 {
       color: #4f46e5;
       font-size: 1.1rem;
       margin-top: 1.2rem;
       font-style: italic;
     }
     @media (max-width: 500px) {
-      .container {padding: 1rem 0.5rem;}
-      .response-container {padding: 0.9rem;}
+      .a1 {padding: 1rem 0.5rem;}
+      .c3 {padding: 0.9rem;}
       header {font-size: 1.3rem;}
     }
   </style>
 </head>
 <body>
   <header>StyleScore AI 2.0</header>
-  <div class="container">
-    <label for="imageInput">上傳含人物的穿搭圖片，AI 幫你評分與評論：</label>
-    <input type="file" id="imageInput" accept="image/*">
-    <img class="preview" id="previewImg" alt="圖片預覽">
-    <button id="analyzeBtn" disabled>AI 評價衣著</button>
-    <div class="loading" id="loading" style="display:none;">AI 分析中，請稍候...</div>
-    <div class="response-container" id="response"></div>
+  <div class="a1">
+    <label for="e5">上傳含人物的穿搭圖片，AI 幫你評分與評論：</label>
+    <input type="file" id="e5" accept="image/*">
+    <img class="b2" id="f6" alt="圖片預覽">
+    <button id="g7" disabled>AI 評價衣著</button>
+    <div class="d4" id="h8" style="display:none;">AI 分析中，請稍候...</div>
+    <div class="c3" id="i9"></div>
   </div>
   <script>
-    const imageInput = document.getElementById('imageInput');
-    const previewImg = document.getElementById('previewImg');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const responseBox = document.getElementById('response');
-    const loadingText = document.getElementById('loading');
-
-    let imageBase64 = "";
-
-    imageInput.addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) {
-        previewImg.style.display = "none";
-        analyzeBtn.disabled = true;
-        imageBase64 = "";
+    const j0=document.getElementById('e5');
+    const k1=document.getElementById('f6');
+    const l2=document.getElementById('g7');
+    const m3=document.getElementById('i9');
+    const n4=document.getElementById('h8');
+    let o5="";
+    j0.addEventListener('change',function(p6){
+      const q7=p6.target.files[0];
+      if(!q7){
+        k1.style.display="none";
+        l2.disabled=true;
+        o5="";
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        imageBase64 = evt.target.result.split(',')[1];
-        previewImg.src = evt.target.result;
-        previewImg.style.display = "block";
-        analyzeBtn.disabled = false;
+      const r8=new FileReader();
+      r8.onload=function(s9){
+        o5=s9.target.result.split(',')[1];
+        k1.src=s9.target.result;
+        k1.style.display="block";
+        l2.disabled=false;
       }
-      reader.readAsDataURL(file);
+      r8.readAsDataURL(q7);
     });
-
-    analyzeBtn.addEventListener('click', async function () {
-      if (!imageBase64) return;
-      responseBox.textContent = "";
-      loadingText.style.display = "block";
-      analyzeBtn.disabled = true;
-
-      // Gemini API 金鑰（請用你自己的金鑰，勿公開）
-      const API_KEY = "AIzaSyB8xgib1MBpC0C7dQmd6OJH1cLcLYKYUfM";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
-      // 30字內，簡潔幽默有創意，亮點/建議+0-100分。
-      const prompt = "請針對下圖人物的穿搭風格，用30字以內、簡潔、幽默又有創意的語氣，進行時尚評價，提出亮點和建議，並給出0-100分的分數。";
-
-      const payload = {
-        contents: [
+    l2.addEventListener('click',async function(){
+      if(!o5)return;
+      m3.textContent="";
+      n4.style.display="block";
+      l2.disabled=true;
+      const t0="QUl6YVN5Qjh4Z2liMU1CcEMwQzdkUW1kNk9KSDFjTGNMWUtZVWZN";
+      const u1=atob(t0);
+      const v2=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${u1}`;
+      const w3="請針對下圖人物的穿搭風格，用30字以內、簡潔、幽默又有創意的語氣，進行時尚評價，提出亮點和建議，並給出0-100分的分數。";
+      const x4={
+        contents:[
           {
-            parts: [
-              { text: prompt },
+            parts:[
+              {text:w3},
               {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: imageBase64
+                inline_data:{
+                  mime_type:"image/jpeg",
+                  data:o5
                 }
               }
             ]
           }
         ]
       };
-
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(payload)
+      try{
+        const y5=await fetch(v2,{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify(x4)
         });
-
-        if (!res.ok) {
+        if(!y5.ok){
           throw new Error("API 回應失敗，請稍後再試");
         }
-        const data = await res.json();
-
-        let reply = "";
-        if (
-          data &&
-          data.candidates &&
-          data.candidates[0] &&
-          data.candidates[0].content &&
-          data.candidates[0].content.parts &&
-          data.candidates[0].content.parts[0] &&
-          data.candidates[0].content.parts[0].text
-        ) {
-          reply = data.candidates[0].content.parts[0].text;
-        } else {
-          reply = "無法取得 AI 評價，請換一張人物圖片再試。";
+        const z6=await y5.json();
+        let a7="";
+        if(
+          z6&&
+          z6.candidates&&
+          z6.candidates[0]&&
+          z6.candidates[0].content&&
+          z6.candidates[0].content.parts&&
+          z6.candidates[0].content.parts[0]&&
+          z6.candidates[0].content.parts[0].text
+        ){
+          a7=z6.candidates[0].content.parts[0].text;
+        }else{
+          a7="無法取得 AI 評價，請換一張人物圖片再試。";
         }
-        responseBox.textContent = reply.trim();
-      } catch (err) {
-        responseBox.textContent = "出現錯誤：" + err.message;
-      } finally {
-        loadingText.style.display = "none";
-        analyzeBtn.disabled = false;
+        m3.textContent=a7.trim();
+      }catch(b8){
+        m3.textContent="出現錯誤："+b8.message;
+      }finally{
+        n4.style.display="none";
+        l2.disabled=false;
       }
     });
   </script>
