@@ -100,7 +100,7 @@
 <body>
   <header>StyleScore AI 2.0</header>
   <div class="container">
-    <label for="imageInput">上傳含人物的穿搭圖片，AI 幫你評分：</label>
+    <label for="imageInput">上傳含人物的穿搭圖片，AI 幫你評分與評論：</label>
     <input type="file" id="imageInput" accept="image/*">
     <img class="preview" id="previewImg" alt="圖片預覽">
     <button id="analyzeBtn" disabled>AI 評價衣著</button>
@@ -144,10 +144,8 @@
       const API_KEY = "AIzaSyB8xgib1MBpC0C7dQmd6OJH1cLcLYKYUfM";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
-      // 毒舌幽默StyleScore語氣 prompt
-      const prompt = `請用StyleScore那種毒舌、幽默又生動比喻的語氣，針對下圖人物穿搭給一句創意短評（30字內），
-要像網友一樣吐槽又不失善意，比喻要新奇有趣，最後給0-100分。
-格式：「評語（30字內）\\n穿搭評分：分數分」`;
+      // 平衡毒舌與溫和的 StyleScore AI 提示詞
+      const prompt = `請以StyleScore AI專業、帶點毒舌但不失幽默的語氣，對下圖人物穿搭給創意點評。像懂時尚的嘴砲好友，吐槽但不傷人，30字內，最後給0-100分。如果不是穿搭照，請幽默提醒上傳正確照片。`;
 
       const payload = {
         contents: [
