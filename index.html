@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>StyleScore AI 2.0</title>
+  <style>
+    body {
+      background: #f9f9fc;
+      color: #222;
+      font-family: 'Segoe UI', 'Noto Sans TC', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #4f46e5;
+      color: #fff;
+      width: 100%;
+      padding: 1.5rem 0;
+      text-align: center;
+      letter-spacing: 2px;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+    .container {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 2px 8px rgba(80,90,160,0.08);
+      padding: 2rem 1.5rem 2.5rem 1.5rem;
+      max-width: 400px;
+      width: 100%;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    label {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      display: block;
+      text-align: center;
+    }
+    input[type="file"] {
+      margin-bottom: 1.3rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+    button {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      font-size: 1.1rem;
+      padding: 0.8rem 2rem;
+      border-radius: 999px;
+      cursor: pointer;
+      margin-bottom: 1.2rem;
+      transition: background 0.2s;
+    }
+    button:active {
+      background: #3730a3;
+    }
+    .preview {
+      margin: 1rem 0;
+      max-width: 180px;
+      max-height: 220px;
+      border-radius: 0.7rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      display: none;
+    }
+    .response-container {
+      width: 100%;
+      background: #f3f4fa;
+      border-radius: 1rem;
+      padding: 1.2rem;
+      font-size: 1rem;
+      color: #222;
+      min-height: 2.5rem;
+      margin-top: 1rem;
+      white-space: pre-line;
+      box-sizing: border-box;
+    }
+    .loading {
+      color: #4f46e5;
+      font-size: 1.1rem;
+      margin-top: 1.2rem;
+      font-style: italic;
+    }
+    @media (max-width: 500px) {
+      .container {padding: 1rem 0.5rem;}
+      .response-container {padding: 0.9rem;}
+      header {font-size: 1.3rem;}
+    }
+  </style>
+</head>
+<body>
+  <header>StyleScore AI 2.0</header>
+  <div class="container">
+    <label for="imageInput">上傳含人物的穿搭圖片，AI 幫你評分與評論：</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <img class="preview" id="previewImg" alt="圖片預覽">
+    <button id="analyzeBtn" disabled>AI 評價衣著</button>
+    <div class="loading" id="loading" style="display:none;">AI 分析中，請稍候...</div>
+    <div class="response-container" id="response"></div>
+  </div>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const previewImg = document.getElementById('previewImg');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const responseBox = document.getElementById('response');
+    const loadingText = document.getElementById('loading');
+
+    let imageBase64 = "";
+
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) {
+        previewImg.style.display = "none";
+        analyzeBtn.disabled = true;
+        imageBase64 = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        imageBase64 = evt.target.result.split(',')[1];
+        previewImg.src = evt.target.result;
+        previewImg.style.display = "block";
+        analyzeBtn.disabled = false;
+      }
+      reader.readAsDataURL(file);
+    });
+
+    analyzeBtn.addEventListener('click', async function () {
+      if (!imageBase64) return;
+      responseBox.textContent = "";
+      loadingText.style.display = "block";
+      analyzeBtn.disabled = true;
+
+      // Gemini API 金鑰（請用你自己的金鑰，勿公開）
+      const API_KEY = "AIzaSyB8xgib1MBpC0C7dQmd6OJH1cLcLYKYUfM";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+      // 30字內，簡潔幽默有創意，亮點/建議+0-100分。
+      const prompt = "請針對下圖人物的穿搭風格，用30字以內、簡潔、幽默又有創意的語氣，進行時尚評價，提出亮點和建議，並給出0-100分的分數。";
+
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg",
+                  data: imageBase64
+                }
+              }
+            ]
+          }
+        ]
+      };
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error("API 回應失敗，請稍後再試");
+        }
+        const data = await res.json();
+
+        let reply = "";
+        if (
+          data &&
+          data.candidates &&
+          data.candidates[0] &&
+          data.candidates[0].content &&
+          data.candidates[0].content.parts &&
+          data.candidates[0].content.parts[0] &&
+          data.candidates[0].content.parts[0].text
+        ) {
+          reply = data.candidates[0].content.parts[0].text;
+        } else {
+          reply = "無法取得 AI 評價，請換一張人物圖片再試。";
+        }
+        responseBox.textContent = reply.trim();
+      } catch (err) {
+        responseBox.textContent = "出現錯誤：" + err.message;
+      } finally {
+        loadingText.style.display = "none";
+        analyzeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
