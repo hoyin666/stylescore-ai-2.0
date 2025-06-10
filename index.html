@@ -90,12 +90,20 @@
       margin-top: 1.2rem;
       font-style: italic;
     }
+    .cf-turnstile {
+      margin-bottom: 1.2rem;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
     @media (max-width: 500px) {
       .container {padding: 1rem 0.5rem;}
       .response-container {padding: 0.9rem;}
       header {font-size: 1.3rem;}
     }
   </style>
+  <!-- Turnstile JS -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
   <header>StyleScore AI 2.0</header>
@@ -103,6 +111,15 @@
     <label for="imageInput">上傳含人物的穿搭圖片，AI 幫你評分與評論：</label>
     <input type="file" id="imageInput" accept="image/*">
     <img class="preview" id="previewImg" alt="圖片預覽">
+
+    <!-- Cloudflare Turnstile 小工具 -->
+    <div id="cf-turnstile" class="cf-turnstile"
+         data-sitekey="0x4AAAAAABgmxfirZnkY545S"
+         data-callback="onTurnstileSuccess"
+         data-expired-callback="onTurnstileExpired"
+         data-error-callback="onTurnstileError">
+    </div>
+
     <button id="analyzeBtn" disabled>AI 評價衣著</button>
     <div class="loading" id="loading" style="display:none;">AI 分析中，請稍候...</div>
     <div class="response-container" id="response"></div>
@@ -115,6 +132,7 @@
     const loadingText = document.getElementById('loading');
 
     let imageBase64 = "";
+    let turnstileToken = "";
 
     imageInput.addEventListener('change', function (e) {
       const file = e.target.files[0];
@@ -129,22 +147,39 @@
         imageBase64 = evt.target.result.split(',')[1];
         previewImg.src = evt.target.result;
         previewImg.style.display = "block";
-        analyzeBtn.disabled = false;
+        // 只有當 token 有且圖片有才啟用按鈕
+        if (turnstileToken) analyzeBtn.disabled = false;
       }
       reader.readAsDataURL(file);
     });
 
+    // Turnstile callback: 成功時取得 token
+    window.onTurnstileSuccess = function(token) {
+      turnstileToken = token;
+      // 只有當圖片有才啟用按鈕
+      if (imageBase64) analyzeBtn.disabled = false;
+    };
+
+    // Turnstile 過期或錯誤時，關閉按鈕
+    window.onTurnstileExpired = window.onTurnstileError = function() {
+      turnstileToken = "";
+      analyzeBtn.disabled = true;
+    };
+
     analyzeBtn.addEventListener('click', async function () {
-      if (!imageBase64) return;
+      if (!imageBase64 || !turnstileToken) {
+        responseBox.textContent = "請完成驗證並上傳圖片";
+        return;
+      }
       responseBox.textContent = "";
       loadingText.style.display = "block";
       analyzeBtn.disabled = true;
 
-      // 使用 Cloudflare Worker Proxy
       const url = "https://white-dew-b573.elivs402.workers.dev/";
 
       const prompt = `請以StyleScore AI專業、帶點毒舌但不失幽默的語氣，對下圖人物穿搭給創意點評。像懂時尚的嘴砲好友，吐槽但不傷人，30字內，最後給0-100分。如果不是穿搭照，請幽默提醒上傳正確照片。`;
 
+      // 把 Turnstile token 一起送到 Worker，方便後端驗證
       const payload = {
         contents: [
           {
@@ -158,7 +193,8 @@
               }
             ]
           }
-        ]
+        ],
+        turnstileToken // <--- 新增這一行
       };
 
       try {
@@ -192,7 +228,8 @@
         responseBox.textContent = "出現錯誤：" + err.message;
       } finally {
         loadingText.style.display = "none";
-        analyzeBtn.disabled = false;
+        // 只有當驗證有效且圖片存在時才啟用
+        if (turnstileToken && imageBase64) analyzeBtn.disabled = false;
       }
     });
   </script>
