@@ -140,12 +140,10 @@
       loadingText.style.display = "block";
       analyzeBtn.disabled = true;
 
-      // API 金鑰
-      const API_KEY = "AIzaSyB8xgib1MBpC0C7dQmd6OJH1cLcLYKYUfM";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+      // 使用 Cloudflare Worker Proxy
+      const url = "https://white-dew-b573.elivs402.workers.dev/";
 
-      // 平衡毒舌與溫和的 StyleScore AI 提示詞
-      const prompt = `請以StyleScore AI專業、帶點毒舌但不失幽默的語氣，對下圖人物穿搭給創意點評。像懂時尚的嘴砲好友，吐槽但不傷人，30字內，最後給0-100分。`;
+      const prompt = `請以StyleScore AI專業、帶點毒舌但不失幽默的語氣，對下圖人物穿搭給創意點評。像懂時尚的嘴砲好友，吐槽但不傷人，30字內，最後給0-100分。如果不是穿搭照，請幽默提醒上傳正確照片。`;
 
       const payload = {
         contents: [
