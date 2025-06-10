@@ -112,12 +112,9 @@
     <input type="file" id="imageInput" accept="image/*">
     <img class="preview" id="previewImg" alt="圖片預覽">
 
-    <!-- Cloudflare Turnstile 小工具 -->
-    <div id="cf-turnstile" class="cf-turnstile"
-         data-sitekey="0x4AAAAAABgmxfirZnkY545S"
-         data-callback="onTurnstileSuccess"
-         data-expired-callback="onTurnstileExpired"
-         data-error-callback="onTurnstileError">
+    <!-- Cloudflare Turnstile 小工具容器（動態渲染） -->
+    <div id="cf-turnstile-container">
+      <div id="cf-turnstile"></div>
     </div>
 
     <button id="analyzeBtn" disabled>AI 評價衣著</button>
@@ -134,17 +131,45 @@
     const responseBox = document.getElementById('response');
     const loadingText = document.getElementById('loading');
 
+    function renderTurnstile() {
+      // 先移除原本的 widget（如果有）
+      const container = document.getElementById('cf-turnstile-container');
+      container.innerHTML = '<div id="cf-turnstile"></div>';
+      turnstileToken = "";
+      analyzeBtn.disabled = true;
+      // 等待 Turnstile JS 載入完成
+      if (window.turnstile) {
+        turnstile.render('#cf-turnstile', {
+          sitekey: '0x4AAAAAABgmxfirZnkY545S',
+          callback: function(token) {
+            turnstileToken = token;
+            if (imageBase64 && turnstileToken) analyzeBtn.disabled = false;
+          },
+          'expired-callback': function() {
+            turnstileToken = "";
+            analyzeBtn.disabled = true;
+          },
+          'error-callback': function() {
+            turnstileToken = "";
+            analyzeBtn.disabled = true;
+          }
+        });
+      } else {
+        // Turnstile 尚未載入，稍後再試
+        setTimeout(renderTurnstile, 200);
+      }
+    }
+
+    // 首次渲染
+    renderTurnstile();
+
     imageInput.addEventListener('change', function (e) {
       const file = e.target.files[0];
       if (!file) {
         previewImg.style.display = "none";
         imageBase64 = "";
         analyzeBtn.disabled = true;
-        // 重置 Turnstile
-        if (window.turnstile) {
-          turnstile.reset('cf-turnstile');
-        }
-        turnstileToken = "";
+        renderTurnstile();
         return;
       }
       const reader = new FileReader();
@@ -152,27 +177,10 @@
         imageBase64 = evt.target.result.split(',')[1];
         previewImg.src = evt.target.result;
         previewImg.style.display = "block";
-        // 上傳新圖時，強制重置 Turnstile，token 也要清空
-        if (window.turnstile) {
-          turnstile.reset('cf-turnstile');
-        }
-        turnstileToken = "";
-        analyzeBtn.disabled = true;
+        renderTurnstile(); // 每次新圖片都刷新認證
       }
       reader.readAsDataURL(file);
     });
-
-    // Turnstile 回調
-    window.onTurnstileSuccess = function(token) {
-      turnstileToken = token;
-      // 只有圖片和 token 都有才啟用
-      if (imageBase64 && turnstileToken) analyzeBtn.disabled = false;
-    };
-
-    window.onTurnstileExpired = window.onTurnstileError = function() {
-      turnstileToken = "";
-      analyzeBtn.disabled = true;
-    };
 
     analyzeBtn.addEventListener('click', async function () {
       if (!imageBase64 || !turnstileToken) {
@@ -201,7 +209,7 @@
             ]
           }
         ],
-        turnstileToken // <--- 一定要帶給 Worker
+        turnstileToken
       };
 
       try {
@@ -235,7 +243,6 @@
         responseBox.textContent = "出現錯誤：" + err.message;
       } finally {
         loadingText.style.display = "none";
-        // 強制分析完要再驗證才能分析下一張圖（上傳新圖時已重置）
         analyzeBtn.disabled = true;
       }
     });
